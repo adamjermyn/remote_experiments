@@ -19,7 +19,7 @@ def make_symlinks(parsed, namer, config_file_name, target_file_name, symlink_dir
 
 	subprocess.run('mkdir ' + symlink_dir, shell=True)
 
-	for fi,config in parsed.items():
+	for fi,config in parsed.iterrows():
 		link_name = symlink_dir + '/' + namer(config) + '_' + target_file_name
 		link_target = fi[:-len(config_file_name)] + target_file_name
 		subprocess.run('rm ' + link_name, shell=True)

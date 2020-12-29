@@ -1,6 +1,8 @@
 from glob import glob
 from collections import defaultdict
 from experiments.base.grids import make_grid
+from pandas import DataFrame
+from copy import deepcopy
 import subprocess
 
 def parse(repo_dir, output_dir, parser):
@@ -26,7 +28,7 @@ def parse(repo_dir, output_dir, parser):
 	This is used to extract information on the parent commit that the runs were
 	derived from (assuming runs are done on temporary patch branches).
 
-	The output is a dictionary of dictionaries, of the form {config_file_path:{parameter_name:value}}.
+	The output is a Pandas DataFrame with columns corresponding to configuration options and rows corresponding to files.
 
 	'''
 
@@ -49,36 +51,24 @@ def parse(repo_dir, output_dir, parser):
 		parsed[fi]['self_short_sha'] = short_sha
 		parsed[fi]['parent_sha'] = parent_sha
 
+	parsed = DataFrame.from_dict(parsed, orient='index')
 	return parsed
-
-def config_is_subset(potential_subset, superset):
-	'''
-	potential_subset and superset are both dictionaries storing {param:value} pairs.
-
-	Returns True if all params in potential_subset exist in superset and have equal values in both.
-	'''
-	for key,value in potential_subset.items():
-		if key not in superset.keys() or str(superset[key]) != str(value):
-			return False
-	return True
 
 def extract_runs(parsed, configs):
 	'''
-	Picks out all runs from the parsed set whose configurations match the any of the specified ones.
+	Picks out all runs from the parsed set whose configurations match the specified ones.
 	'''
-	ret = {}
-	for fi,config in parsed.items():
-		if any(config_is_subset(x, config) for x in configs):
-			ret[fi] = config
-	return ret
+	filtered = deepcopy(parsed)
+	for param,value in configs.items():
+		filtered = filtered[filtered[param] == value]
+	return filtered
 
 def group_by_parent(parsed):
 	'''
 	Groups configurations by parent commit hash.
 	Returns a dictionary of the form
-	{parent_hash:{file_name:{parameter_name:value}}}
+	{parent_hash:DataFrame}
 	'''
-	parents = defaultdict(dict)
-	for fi,params in parsed.items():
-		parents[params['parent_sha']][fi] = params
-	return parents
+	parents = parsed['parent_sha'].unique()
+	ret = dict({parent:parsed[parsed['parent_sha'] == parent]})
+	return ret
