@@ -4,8 +4,9 @@ from pickle import dump
 
 def submit(repo, remote, bname, patch, patch_name):
 	# Setup
-	print('Change local branch to ' + bname)
 	repo.change_branch(bname)
+	parent_sha = repo.get_short_sha()
+	print('Change local branch to ' + bname + ' with short sha ' + parent_sha)
 	print('-------------')
 
 	pname = bname + '_' + patch_name
@@ -47,17 +48,24 @@ def submit(repo, remote, bname, patch, patch_name):
 	print('Removing branch locally and on origin.')
 	repo.delete_branch(pname)
 	print('-------------')
+	return parent_sha, sha
 
-def batch_submit(sweep, repo, remote, make_patch):
+def batch_submit(sweep, repo, remote, make_patch, batch_dir):
 	bname = sweep['branch']
 	name = sweep['name']
 	base_config = sweep['base_config']
 	dimensions = sweep['dimensions']
 	grid = make_grid(base_config, dimensions)
 
+	sweep['run_shas'] = []
 	for config in grid:
 		patch = make_patch(config)
-		submit(repo, remote, bname, patch, name)
+		parent_sha, child_sha = submit(repo, remote, bname, patch, name)
+		sweep['parent_sha'] = parent_sha
+		sweep['run_shas'].append(child_sha)
+
+	save_batch(sweep, batch_dir)
+	return sweep
 
 def save_batch(sweep, dname):
 	now = datetime.now()

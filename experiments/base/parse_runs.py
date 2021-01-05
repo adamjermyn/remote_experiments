@@ -2,6 +2,7 @@ from glob import glob
 from collections import defaultdict
 from experiments.base.grids import make_grid
 from pandas import DataFrame
+import pandas
 from copy import deepcopy
 import subprocess
 
@@ -54,15 +55,6 @@ def parse(repo_dir, output_dir, parser):
 	parsed = DataFrame.from_dict(parsed, orient='index')
 	return parsed
 
-def extract_runs(parsed, configs):
-	'''
-	Picks out all runs from the parsed set whose configurations match the specified ones.
-	'''
-	filtered = deepcopy(parsed)
-	for param,value in configs.items():
-		filtered = filtered[filtered[param] == value]
-	return filtered
-
 def group_by_parent(parsed):
 	'''
 	Groups configurations by parent commit hash.
@@ -70,5 +62,24 @@ def group_by_parent(parsed):
 	{parent_hash:DataFrame}
 	'''
 	parents = parsed['parent_sha'].unique()
-	ret = dict({parent:parsed[parsed['parent_sha'] == parent]})
+	ret = dict({parent:parsed[parsed['parent_sha'] == parent] for parent in parents})
 	return ret
+
+def extract_runs_with_config(parsed, config):
+	'''
+	Picks out all runs from the parsed set matching the specified configuration.
+	'''
+	filtered = deepcopy(parsed)
+	for param,value in config.items():
+		filtered = filtered[filtered[param] == str(value)]
+	return filtered
+	
+
+def extract_runs_with_configs(parsed, configs):
+	'''
+	Picks out all runs from the parsed set whose configurations match the specified ones.
+	'''
+	runs = []
+	for config in configs:
+		runs.append(extract_runs_with_config(parsed, config))
+	return pandas.concat(runs)
