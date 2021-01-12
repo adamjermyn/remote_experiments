@@ -14,7 +14,7 @@ def mesa_parser(fname):
 				value = s[1]
 				parsed[param] = value
 
-		s = fname.split('_time_')[1]
+		s = fname.split('_time_')[-1]
 		s = s.split('_sha')[0]
 		time = datetime.datetime.strptime(s, '%Y_%m_%d_%H_%M_%S')
 		parsed['date_time'] = time
