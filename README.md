@@ -168,7 +168,7 @@ parsed = parse(repo_dir, output_dir, mesa_parser)
 
 symlink_parent_dir = 'place/to/put/symlinks/'
 dname = 'place/to/load/batche/configs'
-target_file_names = ['mov.mp4','history.data','slurm.out'] # File endings to symlink
+target_file_names = ['mov.mp4', 'slurm.out'] # File endings to symlink
 config_file_name = 'inlist_project' # Configuration files to check against the sweep config
 
 # Load the batch
@@ -186,6 +186,8 @@ namer = lambda config: str(config['param1']) + '_' + str(config['param2'])
 # Generate symlinks
 sweep_make_symlinks(parsed, sweep, namer, config_file_name, target_file_names, symlink_dir)
 ```
+
+This example generates files in a directory called `experiment_1` with names of the form `"param1"_"param2"_inlist_project`,  `"param1"_"param2"_mov.mp4`,  and `"param1"_"param2"_slurm.out`.
 
 # MESA
 
