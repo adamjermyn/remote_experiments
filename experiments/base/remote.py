@@ -1,5 +1,6 @@
 import subprocess
 from datetime import datetime
+from tempfile import NamedTemporaryFile
 
 class Remote:
 
@@ -24,9 +25,24 @@ class Remote:
 		command = "ssh " + self.origin + " \"bash -lc 'cd " + run_path + "; pwd; sbatch run.sbatch'\""
 		subprocess.run(command, shell=True)
 
-	def get_disBatch_file(self, disBatch_run_dir, run_dir):
-		command = "ssh " + self.origin + " \"bash -lc 'cp " + run_path + "/run.disBatch " + disBatch_run_dir + "/'\""
+	def prepare_disBatch_on_remote(self, disBatch_run_dir, run_dirs, num_tasks):
+		command = "ssh " + self.origin + " \"bash -lc 'mkdir " + disBatch_run_dir + "/'\""
 		subprocess.run(command, shell=True)
+
+		command = "ssh " + self.origin + " \"bash -lc 'cp " + run_dirs[0] + "/run.disBatch " + disBatch_run_dir + "/'\""
+		subprocess.run(command, shell=True)
+
+		command = "ssh " + self.origin + " \'sed -i \"s/#SBATCH -n/#SBATCH -n " + str(num_tasks) + "/\" " + disBatch_run_dir +  "/run.disBatch " + "\'"
+		subprocess.run(command, shell=True)
+
+		lines = list('cd ' + run_dir + '; bash run.sbatch' for run_dir in run_dirs)
+		fi = NamedTemporaryFile(mode="w+")
+		fi.write("\n".join(lines))
+		fi.flush()
+		fname = fi.name
+		command = "rsync -av " + fname + ' ' + self.origin + ":" + disBatch_run_dir + '/tasks'
+		subprocess.run(command, shell=True)
+		fi.close()
 
 	def run_disBatch_on_remote(self, run_path):
 		command = "ssh " + self.origin + " \"bash -lc 'cd " + run_path + "; pwd; sbatch run.disBatch'\""

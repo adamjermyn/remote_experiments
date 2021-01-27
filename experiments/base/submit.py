@@ -10,7 +10,7 @@ def prepare_remote(repo, remote, bname, patch, name):
 	print('Change local branch to ' + bname + ' with short sha ' + parent_sha)
 	print('-------------')
 
-	pname = bname + '_' + patch_name
+	pname = bname + '_' + name
 	print('Create new branch with name ' + pname)
 	repo.new_branch(bname, pname)
 	print('-------------')
@@ -51,7 +51,7 @@ def prepare_remote(repo, remote, bname, patch, name):
 	print('-------------')
 	return run_path, parent_sha, sha
 
-def submit(run_path):
+def submit(repo, remote, run_path):
 	# Run
 	sha = repo.get_short_sha()
 	print('Running branch on remote.')
@@ -71,33 +71,34 @@ def batch_submit(sweep, repo, remote, make_patch, batch_dir):
 		run_path, parent_sha, child_sha = prepare_remote(repo, remote, bname, patch, name)
 		sweep['parent_sha'] = parent_sha
 		sweep['run_shas'].append(child_sha)
-		submit(run_path)
+		submit(repo, remote, run_path)
 
 	save_batch(sweep, batch_dir)
 	return sweep
 
-def disBatch_submit(sweep, repo, remote, make_patch, batch_dir, disBatch_dir):
+def disBatch_submit(sweep, repo, remote, make_patch, batch_dir, max_tasks, disBatch_dir):
 	bname = sweep['branch']
 	name = sweep['name']
 	base_config = sweep['base_config']
 	dimensions = sweep['dimensions']
 	grid = make_grid(base_config, dimensions)
 
-	run_paths = []
+	run_dirs = []
 	sweep['run_shas'] = []
 	for config in grid:
 		patch = make_patch(config)
 		run_path, parent_sha, child_sha = prepare_remote(repo, remote, bname, patch, name)
-		run_paths.append(run_path)
+		run_dirs.append(run_path)
 		sweep['parent_sha'] = parent_sha
 		sweep['run_shas'].append(child_sha)
+
+	num_tasks = min(max_tasks, len(run_dirs))
 
 	now = datetime.now()
 	time = now.strftime('%Y_%m_%d_%H_%M_%S')
 	disBatch_run_dir = disBatch_dir + '/time_' + time
-
-	repo.get_disBatch_file(disBatch_run_dir, run_dir)
-	repo.run_disBatch_on_remote(disBatch_run_dir)
+	remote.prepare_disBatch_on_remote(disBatch_run_dir, run_dirs, num_tasks)
+	remote.run_disBatch_on_remote(disBatch_run_dir)
 
 	save_batch(sweep, batch_dir)
 	return sweep

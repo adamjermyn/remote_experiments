@@ -28,6 +28,7 @@ def make_symlinks(parsed, namer, config_file_name, target_file_name, symlink_dir
 def sweep_make_symlinks(parsed, sweep, namer, config_file_name, target_file_names, symlink_dir):
 	configs = list({'self_short_sha':sha} for sha in sweep['run_shas'])
 	runs = extract_runs_with_configs(parsed, configs)
+	print(runs)
 	for target_file_name in target_file_names:
 		make_symlinks(runs, namer, config_file_name, target_file_name, symlink_dir)
 
